@@ -1,76 +1,58 @@
-Below is a **complete, production-grade `README.md`** for **MinPaas** in its **final core state (Step 6)**.
-
-This is written so that:
-
-* an interviewer can understand it in 3–5 minutes
-* a senior engineer respects the design
-* future contributors know exactly what exists and what doesn’t
-
-You can paste this **as-is** into `README.md`.
-
----
-
 # MinPaas 🚀
 
-**A Docker-First Mini Platform as a Service**
+**A Docker-First Mini Platform as a Service (PaaS)**
 
-MinPaas is a **minimal, opinionated Platform as a Service (PaaS)** built from scratch to demonstrate how real PaaS systems work internally.
+MinPaas is a **minimal, production-oriented Platform as a Service** built from first principles to demonstrate how real PaaS systems work internally.
 
-It is **not** a Kubernetes wrapper, not a framework demo, and not a toy Heroku clone.
+It focuses on **container lifecycle management**, **control-plane design**, and **incremental platform evolution**, without Kubernetes or unnecessary abstraction.
 
-MinPaas focuses on:
-
-* container lifecycle management
-* control-plane design
-* runtime abstraction
-* Git-based deployments
-* production-grade constraints
-
-> Think: *Heroku’s core loop, built transparently, on a single machine.*
+> Think: *the core of Heroku / Railway / Fly.io — but transparent, single-node, and explainable.*
 
 ---
 
-## Why MinPaas Exists
+## Why MinPaas?
 
-Most “PaaS clone” projects:
+Most “Heroku clone” projects:
 
 * jump straight to Kubernetes
-* hide behavior behind frameworks
-* lack explainable system design
-* over-engineer too early
+* hide logic behind frameworks
+* skip lifecycle and state management
+* are hard to explain in interviews
 
 MinPaas takes the opposite approach:
 
-* Docker is the **only** execution boundary
-* Every feature is added **incrementally**
-* Every design decision is **interview-explainable**
-* Constraints come **before** flexibility
+* Docker is the **only execution abstraction**
+* Everything runs on a **single machine**
+* Each feature is added **only when justified**
+* Every design decision is **explainable**
+
+This makes MinPaas a **systems & platform engineering project**, not just a demo.
 
 ---
 
 ## Core Principles
 
-* **Docker-first**: Docker is the runtime abstraction
-* **Single-machine**: No Kubernetes, no cloud dependency
-* **Opinionated by design**: Platform controls builds
-* **Control-plane driven**: MinPaas manages lifecycle
-* **Incremental evolution**: Features are earned, not assumed
+* **Docker-first** — containers are the runtime boundary
+* **Single-node** — no Kubernetes, no cloud lock-in
+* **Opinionated builds** — platform owns Dockerfiles
+* **Control-plane driven** — explicit lifecycle management
+* **Incremental evolution** — flexibility is earned, not assumed
 
 ---
 
-## Current Feature Set (Final Core)
+## What MinPaas Can Do (v0.1.0)
 
 MinPaas currently supports:
 
-* ✅ Python & Node.js runtimes
-* ✅ Platform-owned Docker build templates
-* ✅ GitHub-based deployments
-* ✅ Persistent control-plane state
-* ✅ Deterministic port allocation
-* ✅ Environment variable injection
-* ✅ Safe redeploys
-* ✅ Container lifecycle management
-* ✅ Application logs via API
+* Python and Node.js runtimes
+* GitHub-based deployments
+* Platform-owned Docker build templates
+* Environment variable injection
+* Deterministic port allocation
+* Safe redeploys
+* Persistent control-plane state
+* Application logs via API
+* Fully working CLI client
 
 This is the **minimum complete PaaS core**.
 
@@ -79,18 +61,18 @@ This is the **minimum complete PaaS core**.
 ## High-Level Architecture
 
 ```
-Client (curl / API)
+CLI / Web Client
         ↓
 MinPaas Control Plane (FastAPI)
         ↓
-Docker CLI (subprocess)
+Docker CLI
         ↓
 Docker Engine
         ↓
 Application Containers
 ```
 
-MinPaas is a **control plane**, not an app runner.
+MinPaas is a **control plane**, not an app framework.
 
 ---
 
@@ -98,200 +80,110 @@ MinPaas is a **control plane**, not an app runner.
 
 ```
 minpaas/
-├── server/
-│   ├── main.py        # API entrypoint
-│   ├── deploy.py      # Build & run lifecycle
-│   ├── registry.py    # Persistent state
-│   ├── runtimes.py    # Runtime definitions
-│   └── git.py         # Git utilities
-├── runtimes/
-│   ├── python/Dockerfile
-│   └── node/Dockerfile
-├── workspace/
-│   └── <app_name>/    # Cloned repositories
-├── state/
-│   └── apps.json      # Control-plane registry
+├── minpaas/              # Python package
+│   ├── server/           # Control plane (FastAPI)
+│   └── cli/              # CLI client
+├── runtimes/             # Runtime Dockerfile templates
+├── workspace/            # Cloned GitHub repos (runtime)
+├── state/                # Control-plane state (runtime)
+├── pyproject.toml
 └── README.md
 ```
 
+Only `minpaas/` is packaged as Python code.
+All other directories are runtime data, by design.
+
 ---
 
-## Runtime Contract (Critical)
+## Runtime Contract
 
-All applications deployed on MinPaas must:
+All deployed applications must:
 
 1. Run as an HTTP server
-2. Listen on the port provided via:
-
-   ```
-   PORT=<number>
-   ```
+2. Listen on the port provided via `PORT`
 3. Conform to the selected runtime’s expectations
 
-This mirrors real PaaS platforms (Heroku, Fly.io, Railway).
+This mirrors real PaaS platforms like Heroku and Fly.io.
+
+### Supported runtimes
+
+| Runtime | Requirements                 | Internal Port |
+| ------- | ---------------------------- | ------------- |
+| Python  | `app.py`, `requirements.txt` | 8000          |
+| Node.js | `package.json` with `start`  | 3000          |
+
+If the contract is violated, the build fails — intentionally.
 
 ---
 
-## Supported Runtimes
+## CLI Usage (Primary Interface)
 
-### Python Runtime
+MinPaas is designed to be used via CLI.
 
-**Requirements:**
+### Install (local dev)
 
-* `app.py`
-* `requirements.txt`
-* App listens on `PORT`
-
-**Internal container port:** `8000`
-
----
-
-### Node.js Runtime
-
-**Requirements:**
-
-* `package.json` with a `start` script
-* Entry file (e.g. `index.js`)
-* App listens on `PORT`
-
-**Internal container port:** `3000`
-
-If these contracts are violated, the build fails — intentionally.
-
----
-
-## Why Dockerfiles Are Platform-Owned
-
-Users **do not** supply Dockerfiles.
-
-Reasons:
-
-* deterministic builds
-* predictable behavior
-* simpler security model
-* easier debugging
-* realistic PaaS behavior
-
-This is a deliberate and defensible design choice.
-
----
-
-## Control Plane API
-
-### Deploy an Application
-
-```http
-POST /deploy
-Content-Type: application/json
+```bash
+pip install -e .
 ```
 
-```json
-{
-  "app": "my-app",
-  "runtime": "node",
-  "repo": "https://github.com/username/repo.git",
-  "env": {
-    "GREETING": "Hello from MinPaas"
-  }
-}
+### Start control plane
+
+```bash
+uvicorn minpaas.server.main:app --port 4000
 ```
 
-**What happens:**
+### Deploy an app
 
-1. Repo is cloned into managed workspace
-2. Runtime Dockerfile is applied
-3. Image is built
-4. Container is replaced safely
-5. State is persisted
+```bash
+minpaas deploy \
+  --app my-app \
+  --runtime node \
+  --repo https://github.com/username/repo \
+  --env DEBUG=false
+```
+
+### List apps
+
+```bash
+minpaas apps
+```
+
+### View logs
+
+```bash
+minpaas logs my-app
+```
+
+### Delete app
+
+```bash
+minpaas delete my-app
+```
+
+The CLI is a **thin HTTP client** — all logic lives in the backend.
 
 ---
 
-### List Applications
+## Control-Plane API (Excerpt)
 
-```http
-GET /apps
-```
+* `POST /deploy` — deploy or redeploy an app
+* `GET /apps` — list deployed apps
+* `GET /apps/{name}/logs` — fetch container logs
+* `DELETE /apps/{name}` — stop and remove app
 
-Returns the full registry of deployed apps.
-
----
-
-### Fetch Application Logs
-
-```http
-GET /apps/{app_name}/logs
-```
-
-Returns recent container logs via Docker.
-
-MinPaas does **not** store logs — Docker is the source of truth.
+Both CLI and future web UI use the same API.
 
 ---
 
-### Delete an Application
+## State & Configuration
 
-```http
-DELETE /apps/{app_name}
-```
+* Control-plane state is stored in `state/apps.json`
+* Environment variables are:
 
-This:
-
-* stops the container
-* removes it from Docker
-* deletes the registry entry
-
----
-
-## Persistent State
-
-MinPaas stores control-plane state in:
-
-```
-state/apps.json
-```
-
-Each app record includes:
-
-* app name
-* runtime
-* repo URL
-* container name
-* image name
-* allocated port
-* public URL
-* environment variables
-
-### Why JSON (for now)
-
-* single-machine deployment
-* human-readable
-* zero operational overhead
-* trivial migration to a database later
-
----
-
-## Deterministic Port Allocation
-
-Ports are assigned deterministically:
-
-```
-port = 10000 + hash(app_name) % 50000
-```
-
-This guarantees:
-
-* stable URLs
-* predictable redeploys
-* no random port churn
-
----
-
-## Environment Variables
-
-* Env vars are provided at deploy time
-* Stored in control-plane state
-* Injected via `docker run -e`
-* No rebuild required for config changes
+  * provided at deploy time
+  * persisted in state
+  * injected at container runtime
+* Images are built once; config changes don’t require rebuilds
 
 This follows the **build vs config separation** used by real PaaS systems.
 
@@ -299,58 +191,40 @@ This follows the **build vs config separation** used by real PaaS systems.
 
 ## Logging Strategy
 
-MinPaas does **not** manage logs itself.
+MinPaas does not manage logs itself.
 
-* Logs are stored by Docker
-* MinPaas exposes them via API
-* No buffering, parsing, or persistence
+* Docker is the source of truth
+* Logs are fetched via `docker logs`
+* No buffering, parsing, or storage duplication
 
-This keeps the platform:
-
-* thin
-* correct
-* easy to reason about
+Simple, correct, and debuggable.
 
 ---
 
 ## What MinPaas Intentionally Does NOT Do
 
-These are **out of scope for the core**:
+These are out of scope for the core:
 
 * Kubernetes orchestration
+* Autoscaling
+* Multi-user auth
 * Reverse proxy / shared domain
-* Authentication / multi-user support
-* CI pipelines or webhooks
 * Metrics & tracing
-* Secrets encryption
-* Auto-scaling
+* Encrypted secrets
+* CI pipelines or webhooks
 
-All of these can be added **after** the foundation.
-
----
-
-## Design Philosophy
-
-> **Constraints first. Flexibility later.**
-
-MinPaas evolves the same way real platforms do:
-
-1. control the environment
-2. enforce contracts
-3. add configurability safely
+The goal is **clarity**, not feature bloat.
 
 ---
 
-## Roadmap (Post-Core Enhancements)
+## Roadmap (Optional Enhancements)
 
-Optional next steps:
-
+* Web dashboard (read-only + deploy form)
 * Reverse proxy (single domain routing)
 * Health checks & restart policies
-* Auth & multi-tenant isolation
-* Encrypted secrets
+* Secrets encryption
+* Multi-tenant auth
 * Metrics & monitoring
-* Web UI
 
 None of these are required for MinPaas to be valid.
 
@@ -362,10 +236,11 @@ MinPaas demonstrates:
 
 * real container lifecycle management
 * control-plane thinking
+* platform-level abstractions
 * production-grade constraints
-* senior-level system design discipline
+* senior-level design discipline
 
-This is **not a demo**.
+This is **not** a tutorial project.
 It is a **minimal but real PaaS**.
 
 ---
@@ -373,15 +248,4 @@ It is a **minimal but real PaaS**.
 ## Author
 
 Built by **Vaibhav Shukla**
-as a serious infrastructure & platform engineering project.
-
----
-
-When you’re ready, instruct me on:
-
-* refinements
-* architecture diagrams
-* interview Q&A
-* security hardening
-* reverse proxy
-* or turning this into a public GitHub release
+as a serious platform engineering & DevOps project.
