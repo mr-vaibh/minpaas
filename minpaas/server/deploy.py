@@ -1,15 +1,15 @@
 import subprocess
 import shutil
 from pathlib import Path
-from registry import register_app, get_app
-from runtimes import RUNTIMES
-from git import clone_repo
+from minpaas.server.registry import register_app, get_app
+from minpaas.server.runtimes import RUNTIMES
+from minpaas.server.git import clone_repo
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-APPS_DIR = BASE_DIR / "apps"
-WORKSPACE_DIR = BASE_DIR / "workspace"
-RUNTIME_DIR = BASE_DIR / "runtimes"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+APPS_DIR = PROJECT_ROOT / "apps"
+WORKSPACE_DIR = PROJECT_ROOT / "workspace"
+RUNTIME_DIR = PROJECT_ROOT / "runtimes"
 
 
 def run(cmd, cwd=None):

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from deploy import deploy_app, get_logs
-from registry import get_apps, delete_app
+from minpaas.server.deploy import deploy_app, get_logs
+from minpaas.server.registry import get_apps, delete_app
 
 app = FastAPI()
 

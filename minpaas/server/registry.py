@@ -1,11 +1,19 @@
 import json
 from pathlib import Path
 
-REGISTRY_PATH = Path(__file__).resolve().parent.parent / "state" / "apps.json"
+# project root = two levels up from this file, then out of package
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+REGISTRY_PATH = PROJECT_ROOT / "state" / "apps.json"
 
 def load_registry():
     with open(REGISTRY_PATH) as f:
-        return json.load(f)
+        data = json.load(f)
+    return normalize_registry(data)
+
+def normalize_registry(data: dict) -> dict:
+    for app in data.values():
+        app.setdefault("runtime", "unknown")
+    return data
 
 def save_registry(data):
     with open(REGISTRY_PATH, "w") as f:
