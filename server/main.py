@@ -6,7 +6,10 @@ app = FastAPI()
 
 @app.post("/deploy")
 def deploy(payload: dict):
-    return deploy_app(payload.get("app"))
+    return deploy_app(
+        payload.get("app"),
+        payload.get("env")
+    )
 
 @app.get("/apps")
 def list_apps():
