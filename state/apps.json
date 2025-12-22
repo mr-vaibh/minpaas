@@ -1,0 +1,13 @@
+{
+  "hello-python": {
+    "app": "hello-python",
+    "container": "minpaas-hello-python-container",
+    "image": "minpaas-hello-python",
+    "port": 34567,
+    "url": "http://localhost:34567",
+    "env": {
+      "GREETING": "Hello from env",
+      "DEBUG": "false"
+    }
+  }
+}
