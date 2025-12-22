@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from deploy import deploy_app, delete_app
-from registry import get_apps
+from deploy import deploy_app
+from registry import get_apps, delete_app
 
 app = FastAPI()
 
@@ -8,6 +8,7 @@ app = FastAPI()
 def deploy(payload: dict):
     return deploy_app(
         payload.get("app"),
+        payload.get("runtime"),
         payload.get("env")
     )
 

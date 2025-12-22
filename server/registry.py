@@ -27,3 +27,13 @@ def get_apps():
 
 def get_app(app_name):
     return load_registry().get(app_name)
+
+def delete_app(app_name: str):
+    app = get_app(app_name)
+    if not app:
+        return {"error": "app not found"}
+
+    run(f"docker rm -f {app['container']}")
+    remove_app(app_name)
+
+    return {"deleted": app_name}

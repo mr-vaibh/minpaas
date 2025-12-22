@@ -8,5 +8,14 @@
     "env": {
       "GREETING": "Hello from MinPaas ENV"
     }
+  },
+  "hello-node": {
+    "app": "hello-node",
+    "runtime": "node",
+    "container": "minpaas-hello-node-container",
+    "image": "minpaas-hello-node",
+    "port": 14306,
+    "url": "http://localhost:14306",
+    "env": {}
   }
 }
