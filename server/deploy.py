@@ -1,12 +1,14 @@
 import subprocess
 import shutil
 from pathlib import Path
-from registry import register_app
+from registry import register_app, get_app
 from runtimes import RUNTIMES
+from git import clone_repo
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 APPS_DIR = BASE_DIR / "apps"
+WORKSPACE_DIR = BASE_DIR / "workspace"
 RUNTIME_DIR = BASE_DIR / "runtimes"
 
 
@@ -19,28 +21,26 @@ def allocate_port(app_name: str) -> int:
 def format_env(env: dict) -> str:
     return " ".join([f"-e {k}='{v}'" for k, v in env.items()])
 
-def deploy_app(app_name, runtime, env=None):
+def deploy_app(app, runtime, repo, env=None):
     env = env or {}
 
     if runtime not in RUNTIMES:
         return {"error": "unsupported runtime"}
 
-    app_path = APPS_DIR / app_name
-    if not app_path.exists():
-        return {"error": "app not found"}
+    app_dir = WORKSPACE_DIR / app
+    clone_repo(repo, app_dir)
 
     runtime_cfg = RUNTIMES[runtime]
     dockerfile_src = RUNTIME_DIR / runtime_cfg["dockerfile"]
-    dockerfile_dst = app_path / "Dockerfile"
-
+    dockerfile_dst = app_dir / "Dockerfile"
     shutil.copy(dockerfile_src, dockerfile_dst)
 
-    image = f"minpaas-{app_name}"
+    image = f"minpaas-{app}"
     container = f"{image}-container"
-    port = allocate_port(app_name)
+    port = allocate_port(app)
     internal_port = runtime_cfg["port"]
 
-    run(f"docker build -t {image} .", app_path)
+    run(f"docker build -t {image} .", app_dir)
     run(f"docker rm -f {container}")
 
     run(
@@ -52,8 +52,9 @@ def deploy_app(app_name, runtime, env=None):
     )
 
     record = {
-        "app": app_name,
+        "app": app,
         "runtime": runtime,
+        "repo": repo,
         "container": container,
         "image": image,
         "port": port,
@@ -61,5 +62,24 @@ def deploy_app(app_name, runtime, env=None):
         "env": env
     }
 
-    register_app(app_name, record)
+    register_app(app, record)
     return record
+
+def get_logs(app_name: str, tail: int = 100):
+    app = get_app(app_name)
+    if not app:
+        return {"error": "app not found"}
+
+    container = app["container"]
+
+    result = subprocess.run(
+        f"docker logs --tail {tail} {container}",
+        shell=True,
+        capture_output=True,
+        text=True
+    )
+
+    return {
+        "app": app_name,
+        "logs": result.stdout
+    }
