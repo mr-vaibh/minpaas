@@ -1,11 +1,13 @@
 {
-  "hello-node": {
-    "app": "hello-node",
-    "runtime": "node",
-    "container": "minpaas-hello-node-container",
-    "image": "minpaas-hello-node",
-    "port": 14306,
-    "url": "http://localhost:14306",
-    "env": {}
+  "hello-python": {
+    "app": "hello-python",
+    "runtime": "python",
+    "repo": "https://github.com/mr-vaibh/minpaas-hello-python",
+    "container": "minpaas-hello-python-container",
+    "image": "minpaas-hello-python",
+    "port": 38973,
+    "url": "http://localhost:38973",
+    "env": {},
+    "command": "python main.py"
   }
 }

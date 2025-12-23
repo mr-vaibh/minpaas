@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = PROJECT_ROOT / "state" / "apps.json"
 
 def run(cmd, cwd=None):
-    subprocess.run(cmd, cwd=cwd, shell=True, check=True)
+    subprocess.run(cmd, cwd=cwd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def load_registry():
     with open(REGISTRY_PATH) as f:
@@ -48,5 +48,9 @@ def delete_app(app_name: str):
 
     run(f"docker rm -f {app['container']}")
     remove_app(app_name)
+
+    # Updating NGINX configuration
+    from minpaas.server.nginx import render_nginx
+    render_nginx()
 
     return {"deleted": app_name}

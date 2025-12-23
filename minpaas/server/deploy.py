@@ -13,7 +13,7 @@ RUNTIME_DIR = PROJECT_ROOT / "runtimes"
 
 
 def run(cmd, cwd=None):
-    subprocess.run(cmd, cwd=cwd, shell=True, check=True)
+    subprocess.run(cmd, cwd=cwd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def allocate_port(app_name: str) -> int:
     return 10000 + (abs(hash(app_name)) % 50000)
@@ -21,7 +21,7 @@ def allocate_port(app_name: str) -> int:
 def format_env(env: dict) -> str:
     return " ".join([f"-e {k}='{v}'" for k, v in env.items()])
 
-def deploy_app(app, runtime, repo, env=None):
+def deploy_app(app, runtime, repo, env=None, command=None):
     env = env or {}
 
     if runtime not in RUNTIMES:
@@ -31,6 +31,8 @@ def deploy_app(app, runtime, repo, env=None):
     clone_repo(repo, app_dir)
 
     runtime_cfg = RUNTIMES[runtime]
+    start_cmd = command or runtime_cfg["default_command"]
+
     dockerfile_src = RUNTIME_DIR / runtime_cfg["dockerfile"]
     dockerfile_dst = app_dir / "Dockerfile"
     shutil.copy(dockerfile_src, dockerfile_dst)
@@ -41,14 +43,23 @@ def deploy_app(app, runtime, repo, env=None):
     internal_port = runtime_cfg["port"]
 
     run(f"docker build -t {image} .", app_dir)
-    run(f"docker rm -f {container}")
+    subprocess.run(
+        f"docker rm -f {container}",
+        shell=True,
+        cwd=app_dir,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+
+    env_flags = format_env(env)
 
     run(
         f"docker run -d "
         f"-p {port}:{internal_port} "
-        f"{format_env(env)} "
+        f"{env_flags} "
         f"--name {container} "
-        f"{image}"
+        f"{image} "
+        f"sh -c \"{start_cmd}\""
     )
 
     record = {
@@ -59,10 +70,16 @@ def deploy_app(app, runtime, repo, env=None):
         "image": image,
         "port": port,
         "url": f"http://localhost:{port}",
-        "env": env
+        "env": env,
+        "command": start_cmd
     }
 
     register_app(app, record)
+
+    # Updating NGINX configuration
+    from minpaas.server.nginx import render_nginx
+    render_nginx()
+
     return record
 
 def get_logs(app_name: str, tail: int = 100):

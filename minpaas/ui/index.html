@@ -1,30 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>MinPaas</title>
-  <link rel="stylesheet" href="/static/styles.css">
+
+  <!-- Tailwind CDN (perfectly fine for internal tools) -->
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>MinPaas</h1>
 
-  <section>
-    <h2>Deploy App</h2>
-    <input id="app" placeholder="app name">
-    <input id="repo" placeholder="github repo url">
-    <select id="runtime">
-      <option value="node">node</option>
-      <option value="python">python</option>
-    </select>
-    <button onclick="deploy()">Deploy</button>
-    <pre id="deploy-result"></pre>
-  </section>
+    <body class="bg-gray-100 min-h-screen text-gray-800">
+        <div class="max-w-5xl mx-auto p-6">
 
-  <section>
-    <h2>Apps</h2>
-    <button onclick="loadApps()">Refresh</button>
-    <table id="apps"></table>
-  </section>
+            <!-- Header -->
+            <header class="mb-8">
+            <h1 class="text-3xl font-bold">MinPaas</h1>
+            <p class="text-gray-500 mt-1">Minimal Platform as a Service</p>
+            </header>
+
+            <!-- Deploy Section -->
+            <section class="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Deploy App</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                id="app"
+                class="border rounded px-3 py-2 focus:outline-none focus:ring"
+                placeholder="App name"
+                />
+
+                <select
+                id="runtime"
+                class="border rounded px-3 py-2 focus:outline-none focus:ring"
+                >
+                <option value="node">Node.js</option>
+                <option value="python">Python</option>
+                </select>
+
+                <input
+                id="repo"
+                class="border rounded px-3 py-2 focus:outline-none focus:ring md:col-span-2"
+                placeholder="GitHub repository URL"
+                />
+
+                <input
+                id="command"
+                class="border rounded px-3 py-2 focus:outline-none focus:ring md:col-span-2"
+                placeholder="Start command (e.g. npm start / python main.py)"
+                />
+
+                <textarea
+                id="env"
+                rows="4"
+                class="border rounded px-3 py-2 focus:outline-none focus:ring md:col-span-2 font-mono text-sm"
+                placeholder="ENV variables (KEY=VALUE per line)"
+                ></textarea>
+            </div>
+
+            <div class="mt-4 flex items-center gap-4">
+                <button
+                onclick="deploy()"
+                class="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+                >
+                Deploy
+                </button>
+            </div>
+
+            <pre
+                id="deploy-result"
+                class="mt-4 bg-gray-900 text-green-400 p-4 rounded text-sm overflow-x-auto"
+            ></pre>
+            </section>
+
+            <!-- Apps Section -->
+            <section class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold">Apps</h2>
+                <button
+                onclick="loadApps()"
+                class="border px-3 py-1 rounded hover:bg-gray-100"
+                >
+                Refresh
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table
+                id="apps"
+                class="w-full border-collapse text-sm"
+                ></table>
+            </div>
+            </section>
+
+        </div>
+
+        <!-- Logs Modal -->
+        <div id="logs-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center">
+        <div class="bg-gray-900 text-green-400 w-3/4 max-w-3xl rounded shadow-lg p-4">
+            <div class="flex justify-between items-center mb-2">
+            <h3 class="font-semibold text-white">Logs</h3>
+            <button onclick="closeLogs()" class="text-white text-xl">&times;</button>
+            </div>
+            <pre id="logs-content" class="text-sm overflow-y-auto max-h-[60vh]"></pre>
+        </div>
+        </div>
+
 
   <script src="/static/app.js"></script>
 </body>
