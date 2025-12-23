@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 
 def run(cmd, cwd=None):
-    subprocess.run(cmd, cwd=cwd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(cmd, cwd=cwd, shell=True, check=True)
 
 def clone_repo(repo_url: str, target_dir: Path):
     if target_dir.exists():

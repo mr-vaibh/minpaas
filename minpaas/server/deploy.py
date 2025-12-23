@@ -13,7 +13,7 @@ RUNTIME_DIR = PROJECT_ROOT / "runtimes"
 
 
 def run(cmd, cwd=None):
-    subprocess.run(cmd, cwd=cwd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(cmd, cwd=cwd, shell=True, check=True)
 
 def allocate_port(app_name: str) -> int:
     return 10000 + (abs(hash(app_name)) % 50000)

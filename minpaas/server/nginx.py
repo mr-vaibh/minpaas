@@ -1,24 +1,36 @@
 from pathlib import Path
-import json
+import subprocess
+from minpaas.server.registry import load_registry
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-STATE_FILE = PROJECT_ROOT / "state" / "apps.json"
-NGINX_DIR = PROJECT_ROOT / "nginx"
-NGINX_APPS = NGINX_DIR / "apps.conf"
+NGINX_APPS_CONF = Path("nginx/conf.d/apps.map.conf")
 
-def render_nginx():
-    with open(STATE_FILE) as f:
-        apps = json.load(f)
 
-    lines = [
-        "map $host $upstream {",
-        "  default \"\";"
-    ]
+def regenerate_nginx_config():
+    apps = load_registry()
 
-    for app in apps.values():
-        host = f"{app['app']}.localhost"
-        lines.append(f"  {host} 127.0.0.1:{app['port']};")
+    blocks = []
 
-    lines.append("}")
+    for name, app in apps.items():
+        port = app.get("port")
+        if not port:
+            continue
 
-    NGINX_APPS.write_text("\n".join(lines))
+        blocks.append(f"""
+server {{
+    listen 80;
+    server_name {name}.localhost;
+
+    location / {{
+        proxy_pass http://127.0.0.1:{port};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }}
+}}
+""")
+
+    NGINX_APPS_CONF.write_text("\n".join(blocks))
+
+    subprocess.run(
+        ["sudo", "nginx", "-s", "reload"],
+        check=True
+    )

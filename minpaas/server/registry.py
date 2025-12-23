@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = PROJECT_ROOT / "state" / "apps.json"
 
 def run(cmd, cwd=None):
-    subprocess.run(cmd, cwd=cwd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(cmd, cwd=cwd, shell=True, check=True)
 
 def load_registry():
     with open(REGISTRY_PATH) as f:

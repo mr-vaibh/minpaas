@@ -37,7 +37,7 @@ async function loadApps() {
           <th class="p-2">Name</th>
           <th class="p-2">Runtime</th>
           <th class="p-2">Status</th>
-          <th class="p-2">URL</th>
+          <th class="p-2">Local Port</th>
           <th class="p-2">Command</th>
           <th class="p-2">Actions</th>
         </tr>
@@ -56,9 +56,20 @@ async function loadApps() {
         <td class="p-2">${app.runtime || "-"}</td>
         <td class="p-2">${statusBadge(app.status || "unknown")}</td>
         <td class="p-2">
-          <a href="${app.url}" target="_blank" class="text-blue-600 hover:underline">
-            ${app.url}
-          </a>
+            <div>
+              <a
+                href="http://${name}.localhost"
+                target="_blank"
+                class="text-blue-600 hover:underline font-mono"
+              >
+                ${name}.localhost
+              </a>
+              ${
+                app.port
+                  ? `<div class="text-xs text-gray-500">port ${app.port}</div>`
+                  : ""
+              }
+            </div>
         </td>
         <td class="p-2 font-mono text-xs">${app.command || "default"}</td>
         <td class="p-2 space-x-2">
