@@ -1,9 +1,14 @@
 import json
+import subprocess
 from pathlib import Path
+
 
 # project root = two levels up from this file, then out of package
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = PROJECT_ROOT / "state" / "apps.json"
+
+def run(cmd, cwd=None):
+    subprocess.run(cmd, cwd=cwd, shell=True, check=True)
 
 def load_registry():
     with open(REGISTRY_PATH) as f:

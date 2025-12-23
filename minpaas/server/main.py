@@ -2,7 +2,20 @@ from fastapi import FastAPI
 from minpaas.server.deploy import deploy_app, get_logs
 from minpaas.server.registry import get_apps, delete_app
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
+
+
 app = FastAPI()
+
+UI_DIR = Path(__file__).resolve().parents[2] / "minpaas" / "ui"
+
+app.mount("/static", StaticFiles(directory=UI_DIR), name="static")
+
+@app.get("/")
+def ui():
+    return FileResponse(UI_DIR / "index.html")
 
 @app.post("/deploy")
 def deploy(payload: dict):

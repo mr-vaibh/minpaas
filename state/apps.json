@@ -1,14 +1,4 @@
 {
-  "hello-python": {
-    "app": "hello-python",
-    "container": "minpaas-hello-python-container",
-    "image": "minpaas-hello-python",
-    "port": 45365,
-    "url": "http://localhost:45365",
-    "env": {
-      "GREETING": "Hello from MinPaas ENV"
-    }
-  },
   "hello-node": {
     "app": "hello-node",
     "runtime": "node",
