@@ -10,25 +10,6 @@
     "env": {},
     "command": "python main.py"
   },
-  "repomind": {
-    "app": "repomind",
-    "runtime": "python",
-    "repo": "https://github.com/mr-vaibh/repomind",
-    "container": "minpaas-repomind-container",
-    "image": "minpaas-repomind",
-    "port": 57819,
-    "url": "http://localhost:57819",
-    "env": {
-      "GEMINI_API_KEY": "AIzaSyB_2ihEg7fTnzUupRld1qpFJzr4SDj9GRY",
-      "POSTGRES_DB": "repomind",
-      "POSTGRES_USER": "postgres",
-      "POSTGRES_PASSWORD": "root321",
-      "POSTGRES_HOST": "localhost",
-      "POSTGRES_PORT": "5432",
-      "DJANGO_SECRET_KEY": "your_django_secret_key_here"
-    },
-    "command": "python manage.py runserver 0.0.0.0:5000"
-  },
   "hello-node": {
     "app": "hello-node",
     "runtime": "node",
