@@ -1,78 +1,122 @@
-# MinPaas 🚀
+# MinPaas
 
-**A Docker-First Mini Platform as a Service (PaaS)**
+**MinPaas** is a **Docker-first, single-machine Platform-as-a-Service (PaaS)** inspired by early Heroku.
 
-MinPaas is a **minimal, production-oriented Platform as a Service** built from first principles to demonstrate how real PaaS systems work internally.
+It allows users to deploy applications directly from GitHub repositories and access them via **subdomain-based routing (`appname.localhost`)**, without Kubernetes.
 
-It focuses on **container lifecycle management**, **control-plane design**, and **incremental platform evolution**, without Kubernetes or unnecessary abstraction.
-
-> Think: *the core of Heroku / Railway / Fly.io — but transparent, single-node, and explainable.*
+MinPaas is intentionally minimal and built to demonstrate **real-world system design**, **container lifecycle management**, and **production thinking**.
 
 ---
 
 ## Why MinPaas?
 
-Most “Heroku clone” projects:
+Modern PaaS platforms hide too much.
 
-* jump straight to Kubernetes
-* hide logic behind frameworks
-* skip lifecycle and state management
-* are hard to explain in interviews
+MinPaas is designed to show:
 
-MinPaas takes the opposite approach:
+* how a PaaS actually works internally
+* how Docker, ports, and reverse proxies interact
+* how control planes and data planes are separated
+* how to build incrementally without overengineering
 
-* Docker is the **only execution abstraction**
-* Everything runs on a **single machine**
-* Each feature is added **only when justified**
-* Every design decision is **explainable**
+This project is optimized for:
 
-This makes MinPaas a **systems & platform engineering project**, not just a demo.
-
----
-
-## Core Principles
-
-* **Docker-first** — containers are the runtime boundary
-* **Single-node** — no Kubernetes, no cloud lock-in
-* **Opinionated builds** — platform owns Dockerfiles
-* **Control-plane driven** — explicit lifecycle management
-* **Incremental evolution** — flexibility is earned, not assumed
+* learning
+* interviews
+* resume demonstration
+* infrastructure fundamentals
 
 ---
 
-## What MinPaas Can Do (v0.1.0)
+## Core Features
 
-MinPaas currently supports:
-
-* Python and Node.js runtimes
 * GitHub-based deployments
-* Platform-owned Docker build templates
-* Environment variable injection
-* Deterministic port allocation
-* Safe redeploys
-* Persistent control-plane state
-* Application logs via API
-* Fully working CLI client
-
-This is the **minimum complete PaaS core**.
+* Docker-based execution (no Kubernetes)
+* Python & Node.js runtimes
+* Dynamic port allocation
+* Subdomain routing via NGINX (`appname.localhost`)
+* CLI interface
+* REST API
+* Web dashboard
+* Live logs (semi-live actually, depends how well I've written Javascript)
+* App lifecycle management (deploy, list, logs, delete)
 
 ---
 
 ## High-Level Architecture
 
+### Overview
+
+![MinPaas Architecture](docs/architecture.png)
+
 ```
-CLI / Web Client
-        ↓
-MinPaas Control Plane (FastAPI)
-        ↓
-Docker CLI
-        ↓
-Docker Engine
-        ↓
-Application Containers
+┌──────────────┐
+│     User     │
+│ CLI / UI     │
+└──────┬───────┘
+       │ HTTP
+       ▼
+┌────────────────────┐
+│   MinPaas API      │
+│   (FastAPI)        │
+│                    │
+│ - deploy logic     │
+│ - registry         │
+│ - nginx sync       │
+└──────┬─────────────┘
+       │ docker build/run
+       ▼
+┌────────────────────┐
+│   Docker Engine    │
+│                    │
+│  App Containers    │
+│  (python/node)     │
+│                    │
+│  PORT=47784        │
+└──────┬─────────────┘
+       │ localhost:port
+       ▼
+┌────────────────────┐
+│       NGINX        │
+│ Reverse Proxy      │
+│                    │
+│ app.localhost →    │
+│ 127.0.0.1:PORT     │
+└──────┬─────────────┘
+       │
+       ▼
+┌────────────────────┐
+│   Browser Access   │
+│ appname.localhost  │
+└────────────────────┘
+
 ```
 
-MinPaas is a **control plane**, not an app framework.
+### Traffic Flow
+
+```
+Browser
+  |
+  |  http://appname.localhost
+  v
+NGINX (reverse proxy)
+  |
+  |  proxy_pass → localhost:<dynamic-port>
+  v
+Docker Container
+```
+
+---
+
+## Design Principles
+
+* **Docker is the core abstraction**
+* **Single machine**
+* **No Kubernetes**
+* **No magic**
+* **Everything explainable**
+* **Incremental complexity**
+* **State is explicit**
 
 ---
 
@@ -80,67 +124,154 @@ MinPaas is a **control plane**, not an app framework.
 
 ```
 minpaas/
-├── minpaas/              # Python package
-│   ├── server/           # Control plane (FastAPI)
-│   └── cli/              # CLI client
-├── runtimes/             # Runtime Dockerfile templates
-├── workspace/            # Cloned GitHub repos (runtime)
-├── state/                # Control-plane state (runtime)
-├── pyproject.toml
+├── minpaas/
+│   ├── server/
+│   │   ├── main.py        # FastAPI app
+│   │   ├── deploy.py      # build/run containers
+│   │   ├── registry.py    # persistent app state
+│   │   ├── nginx.py       # NGINX config generation
+│   ├── cli/
+│   │   ├── cli.py         # minpaas CLI
+│   │   ├── api.py         # HTTP wrapper
+├── nginx/
+│   ├── nginx.conf         # main nginx config
+│   ├── apps.map.conf     # generated routing map
+│   ├── mime.types
+├── state/
+│   └── apps.json          # source of truth
+├── workspace/             # cloned repos
+├── static/                # UI assets
 └── README.md
 ```
 
-Only `minpaas/` is packaged as Python code.
-All other directories are runtime data, by design.
+Note from author: Ideally the source of truth must be actual containers running, but we don't consider it because there could be a case where the container exited with some code, for eg. 1. In such cases the UI must still show the container info whether or not is running or not running to debug it.
 
 ---
 
-## Runtime Contract
+## How MinPaas Works (Detailed)
 
-All deployed applications must:
+### 1. Deployment Flow
 
-1. Run as an HTTP server
-2. Listen on the port provided via `PORT`
-3. Conform to the selected runtime’s expectations
+When a user deploys an app:
 
-This mirrors real PaaS platforms like Heroku and Fly.io.
-
-### Supported runtimes
-
-| Runtime | Requirements                 | Internal Port |
-| ------- | ---------------------------- | ------------- |
-| Python  | `app.py`, `requirements.txt` | 8000          |
-| Node.js | `package.json` with `start`  | 3000          |
-
-If the contract is violated, the build fails — intentionally.
+1. Repo is cloned into `workspace/`
+2. A runtime-specific Dockerfile is selected
+3. Docker image is built
+4. A free host port is allocated
+5. Container is started with `-p host_port:container_port`
+6. App metadata is written to `state/apps.json`
+7. NGINX routing is regenerated
+8. NGINX is reloaded
 
 ---
 
-## CLI Usage (Primary Interface)
+### 2. Runtime Model
 
-MinPaas is designed to be used via CLI.
+Supported runtimes:
 
-### Install (local dev)
+* **Python**
+* **Node.js**
 
-```bash
-pip install -e .
+Requirements:
+
+* App must listen on `$PORT`
+* App must bind to `0.0.0.0`
+
+Example:
+
+```js
+server.listen(process.env.PORT, "0.0.0.0");
 ```
 
-### Start control plane
+---
+
+### 3. State Management
+
+MinPaas uses a **file-based registry**:
+
+```json
+{
+  "hello-node": {
+    "runtime": "node",
+    "port": 47784,
+    "status": "running",
+    "url": "http://hello-node.localhost",
+    "command": "node index.js"
+  }
+}
+```
+
+This registry is the **single source of truth**.
+
+---
+
+### 4. Reverse Proxy (NGINX)
+
+MinPaas uses **hostname-based routing** via NGINX.
+
+Generated file:
+
+```nginx
+map $host $upstream {
+  default "";
+  hello-node.localhost 127.0.0.1:47784;
+  hello-python.localhost 127.0.0.1:38973;
+}
+```
+
+A single wildcard server handles all apps:
+
+```nginx
+server {
+  listen 80;
+  server_name *.localhost;
+
+  location / {
+    if ($upstream = "") { return 404; }
+    proxy_pass http://$upstream;
+  }
+}
+```
+
+This design:
+
+* avoids per-app server blocks
+* scales cleanly
+* mirrors real ingress controllers
+
+---
+
+## Usage
+
+MinPaas can be used in **three ways**:
+
+1. CLI
+2. REST API (curl)
+3. Web UI
+
+---
+
+## 1️⃣ CLI Usage
+
+### Start MinPaas server
 
 ```bash
 uvicorn minpaas.server.main:app --port 4000
 ```
 
+---
+
 ### Deploy an app
 
 ```bash
 minpaas deploy \
-  --app my-app \
+  --app hello-node \
   --runtime node \
-  --repo https://github.com/username/repo \
-  --env DEBUG=false
+  --repo https://github.com/you/hello-node \
+  --command "node index.js"
 ```
+
+---
 
 ### List apps
 
@@ -148,104 +279,115 @@ minpaas deploy \
 minpaas apps
 ```
 
+Output:
+
+```
+NAME          RUNTIME   STATUS    URL
+hello-node    node      running   http://hello-node.localhost
+```
+
+---
+
 ### View logs
 
 ```bash
-minpaas logs my-app
+minpaas logs hello-node
 ```
+
+---
 
 ### Delete app
 
 ```bash
-minpaas delete my-app
+minpaas delete hello-node
 ```
 
-The CLI is a **thin HTTP client** — all logic lives in the backend.
+---
+
+## 2️⃣ REST API (curl)
+
+### Deploy
+
+```bash
+curl -X POST http://localhost:4000/deploy \
+  -H "Content-Type: application/json" \
+  -d '{
+    "app": "hello-node",
+    "runtime": "node",
+    "repo": "https://github.com/you/hello-node",
+    "command": "node index.js"
+  }'
+```
 
 ---
 
-## Control-Plane API (Excerpt)
+### List apps
 
-* `POST /deploy` — deploy or redeploy an app
-* `GET /apps` — list deployed apps
-* `GET /apps/{name}/logs` — fetch container logs
-* `DELETE /apps/{name}` — stop and remove app
-
-Both CLI and future web UI use the same API.
+```bash
+curl http://localhost:4000/apps
+```
 
 ---
 
-## State & Configuration
+### Logs
 
-* Control-plane state is stored in `state/apps.json`
-* Environment variables are:
-
-  * provided at deploy time
-  * persisted in state
-  * injected at container runtime
-* Images are built once; config changes don’t require rebuilds
-
-This follows the **build vs config separation** used by real PaaS systems.
+```bash
+curl http://localhost:4000/apps/hello-node/logs
+```
 
 ---
 
-## Logging Strategy
+## 3️⃣ Web UI
 
-MinPaas does not manage logs itself.
+* Visit: `http://localhost:4000`
+* Deploy apps via form
+* View app list
+* Click `appname.localhost`
+* View logs in modal
+* Delete apps
 
-* Docker is the source of truth
-* Logs are fetched via `docker logs`
-* No buffering, parsing, or storage duplication
-
-Simple, correct, and debuggable.
-
----
-
-## What MinPaas Intentionally Does NOT Do
-
-These are out of scope for the core:
-
-* Kubernetes orchestration
-* Autoscaling
-* Multi-user auth
-* Reverse proxy / shared domain
-* Metrics & tracing
-* Encrypted secrets
-* CI pipelines or webhooks
-
-The goal is **clarity**, not feature bloat.
+The UI is intentionally minimal and operational.
 
 ---
 
-## Roadmap (Optional Enhancements)
+## Constraints (By Design)
 
-* Web dashboard (read-only + deploy form)
-* Reverse proxy (single domain routing)
-* Health checks & restart policies
-* Secrets encryption
-* Multi-tenant auth
-* Metrics & monitoring
+* Single machine
+* No autoscaling
+* No TLS
+* No persistent volumes
+* No Kubernetes
+* No background workers
 
-None of these are required for MinPaas to be valid.
+These are **intentional**, not limitations.
 
 ---
 
-## Why This Project Matters
+## What This Project Demonstrates
 
-MinPaas demonstrates:
+* Docker container lifecycle
+* Runtime abstraction
+* Reverse proxy integration
+* Dynamic routing
+* Control plane vs data plane
+* Real PaaS architecture
+* Operational debugging
+* Incremental system design
 
-* real container lifecycle management
-* control-plane thinking
-* platform-level abstractions
-* production-grade constraints
-* senior-level design discipline
+---
 
-This is **not** a tutorial project.
-It is a **minimal but real PaaS**.
+## Future Improvements (Planned)
+
+* Restart app
+* Health checks
+* Crash detection
+* Auto-redeploy
+* TLS via Caddy
+* Custom domains
+* Metrics
 
 ---
 
 ## Author
 
 Built by **Vaibhav Shukla**
-as a serious platform engineering & DevOps project.
